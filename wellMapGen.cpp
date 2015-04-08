@@ -9,11 +9,12 @@
 // gcc -I ~/Shannon/bamtools/include/ -L ~/Shannon/bamtools/lib/ -o wellMapGen wellMapGen.cpp -lz -lbamtools -lstdc++
 // ./wellMapGen test_bamfiles/sim_reads_aligned.bam
 
-typedef std::string barCode_str;
+typedef std::string barcode_str;
 typedef std::string read_str;
-typedef std::multimap<barCode_str, read_str> mapRead;
+typedef std::multimap<barcode_str, read_str> mapRead;
 
-void bam_to_mapRead(const char* fName, mapRead& m, const char* tName){
+void bam_to_mapRead(const char* fName, mapRead& m, const char* tName) { 
+    // create a multimap: m, based on tag: tName, from .bam file
     std::string bamFname(fName);
     BamTools::BamReader reader;
     if (!reader.Open(bamFname)) {
@@ -22,7 +23,7 @@ void bam_to_mapRead(const char* fName, mapRead& m, const char* tName){
     }
 
     char tagTypeName;
-    barCode_str tagData;
+    barcode_str tagData;
     read_str read;
 
     BamTools::BamAlignment al;
@@ -31,7 +32,7 @@ void bam_to_mapRead(const char* fName, mapRead& m, const char* tName){
             if (tagTypeName == 'Z') {               // verify that type is correct
                 read = al.QueryBases;               // extract the read from entry
                 al.GetTag(tName, tagData);          // extract the tag value from entry
-                m.insert(std::pair<barCode_str, read_str>(tagData, read)); // add entry to multimap
+                m.insert(std::pair<barcode_str, read_str>(tagData, read)); // add entry to multimap
             } 
             else {
                 printf("Warning: tagType is not Z - entry ignored \n");
@@ -41,8 +42,7 @@ void bam_to_mapRead(const char* fName, mapRead& m, const char* tName){
     reader.Close();
 }
 
-
-void printMap(mapRead m) { // used to visualize and check the multimap
+void printMap(mapRead m) { // print the entire multimap
     std::cout << "Print Map:"<< std::endl;
     int i = 0;
     for (mapRead::iterator it = m.begin(); it != m.end(); ++it) {
@@ -52,27 +52,25 @@ void printMap(mapRead m) { // used to visualize and check the multimap
     }
 }
 
-void mapRead_to_file(const char* bamFname, mapRead mapBarRead, const char* mapName){
-    std::string fname(bamFname);
-    fname += std::string(mapName);
+void mapRead_to_file(const char* bFname, mapRead mRead, const char* mName){ // save multimap to a file
+    std::string fname(bFname);   
+    fname += std::string(mName); 
     std::ofstream file (fname.c_str());
-
     if (!file.is_open()) {
        printf("map_to_file: Cannot open the .bammap file %s!\n", fname.c_str());
        exit(1);
     }
 
-    uint64_t map_size = mapBarRead.size();
+    uint64_t map_size = mRead.size();
     file << "> Mapsize: " << map_size << "\n";
-    if (file.is_open()) {
-        for ( mapRead::iterator it = mapBarRead.begin(); it != mapBarRead.end(); ++it) {
-            barCode_str bc = it->first;
-            read_str read = it->second;
-            file << bc << "\t" << read << "\n";
-        }
+    for ( mapRead::iterator it = mRead.begin(); it != mRead.end(); ++it) {
+        file << it->first << "\t" << it->second << "\n"; // [barcode, read]
     }
     file.close();
 }
+
+
+
 
 int main(int argc, char* argv[])
 {
@@ -85,19 +83,19 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-mapRead MapLarge, MapSmall;
-const char MapLargeName[] = "map";
-const char MapSmallName[] = "maptiny"; // MAP with small number of wells
-const char barCodeName[]  = "MD";
+    mapRead MapLarge, MapSmall;
+    const char MapLargeName[] = "map";
+    const char MapSmallName[] = "maptiny"; // MAP with small number of wells
+    const char barcodeName[]  = "MD";
 
-bam_to_mapRead(inputFileName, MapLarge, barCodeName);
-//printMap(MapLarge); 
-mapRead_to_file(inputFileName, MapLarge, MapLargeName);
+    bam_to_mapRead(inputFileName, MapLarge, barcodeName);
+    //printMap(MapLarge); 
+    mapRead_to_file(inputFileName, MapLarge, MapLargeName);
 
-//extract_smallMap(MapLarge); /
-//mapRead_to_file(inputFileName, MapSmall, MapSmallName);
+    //extract_smallMap(MapLarge); /
+    //mapRead_to_file(inputFileName, MapSmall, MapSmallName);
 
-//printMap(MapLarge);
-//printMap(MapSmall);
-return 0;
+    //printMap(MapLarge);
+    //printMap(MapSmall);
+    return 0;
 }
