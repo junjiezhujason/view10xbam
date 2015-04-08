@@ -4,10 +4,7 @@
 #include "api/BamWriter.h"
 #include <string>
 #include <iostream>
-//#include <map>
-
-// compile: gcc -I /PATH/bamtools/include/ -L ~/PATH/bamtools/lib/ -o do_bam do_bam.cpp -lz -lbamtools -lstdc++
-// ./do_bam test_bamfiles/sim_reads_aligned.bam 
+//git#include <map>
 
 //using namespace std;
 using namespace BamTools;
