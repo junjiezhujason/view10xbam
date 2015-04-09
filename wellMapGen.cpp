@@ -52,7 +52,7 @@ void printMap(mapRead m) { // print the entire multimap
     }
 }
 
-void mapRead_to_file(const char* bFname, mapRead mRead, const char* mName){ // save multimap to a file
+void mapRead_to_file(const char* bFname, mapRead mRead, const char* mName){ // save a multimap to a file
     std::string fname(bFname);   
     fname += std::string(mName); 
     std::ofstream file (fname.c_str());
@@ -62,40 +62,69 @@ void mapRead_to_file(const char* bFname, mapRead mRead, const char* mName){ // s
     }
 
     uint64_t map_size = mRead.size();
-    file << "> Mapsize: " << map_size << "\n";
+    file << "> Number of Reads: " << map_size << "\n";
     for ( mapRead::iterator it = mRead.begin(); it != mRead.end(); ++it) {
         file << it->first << "\t" << it->second << "\n"; // [barcode, read]
     }
     file.close();
 }
 
-
+void submaps_to_files(const char* bFname, mapRead mRead, const int numBc) { // 
+    int countBc = 0;    // barcode counter
+    int totalBc = 0;    // total # of barcodes
+    int totalFiles = 0; // number of file to created
+    bool newBc = false; // flag indicator if the barcode is new
+    barcode_str bc;     // bar code string
+    mapRead MapSmall;   // small map
+    char subfName[10];
+    char buffer[7];
+    // use the fact that the keys are sorted in multimaps 
+    for ( mapRead::iterator it = mRead.begin(); it != mRead.end(); ++it) {
+        if (bc.compare(it->first)) { // if this barcode is different from the previous
+            newBc = true;
+        } 
+        if (newBc) {         
+            if (countBc == numBc) { // if already encountered numBc # of barcodes
+                // mapread_to_file  // save map to file
+                strcpy(subfName, "map"); std::string s = std::to_string(totalFiles);strcat(subfName, s.c_str());  
+                mapRead_to_file(bFname, MapSmall, subfName);
+                totalFiles++;
+                countBc = 0;        // reset counter 
+                MapSmall.clear();   // reset multimap
+            } 
+            countBc++;
+            totalBc++;     
+        } 
+        // insert the [barcode, read] to the multimap
+        MapSmall.insert(std::pair<barcode_str, read_str>(it->first, it->second));
+        bc = it->first; // keep a copy of this barcode for future comparison
+        newBc = false;
+    }
+    strcpy(subfName, "map"); std::string s = std::to_string(totalFiles);strcat(subfName, s.c_str());  
+    mapRead_to_file(bFname, MapSmall, subfName); // save the leftover counts in the last file
+    totalFiles++;
+    printf("Total Number of Barcodes: %d\n",totalBc);
+    printf("Number of Files: %d\n", totalFiles);
+}
 
 
 int main(int argc, char* argv[])
 {
-    char*  inputFileName;
+    char* inputFileName;
+    char barcodeName[] = "MD";
+    int bcPerFile = 100;
+    mapRead MapLarge;
+
     if ( argc == 2 ) {
             inputFileName  = argv[1] ;
-    }
-    else {
+    } else {
         std::cerr << "Wrong number of arguments." << std::endl;
         return 1;
     }
 
-    mapRead MapLarge, MapSmall;
-    const char MapLargeName[] = "map";
-    const char MapSmallName[] = "maptiny"; // MAP with small number of wells
-    const char barcodeName[]  = "MD";
-
     bam_to_mapRead(inputFileName, MapLarge, barcodeName);
-    //printMap(MapLarge); 
-    mapRead_to_file(inputFileName, MapLarge, MapLargeName);
+    submaps_to_files(inputFileName, MapLarge, bcPerFile);   // output maps in separate files
+    mapRead_to_file(inputFileName, MapLarge, "mapAll"); // output the entire map
 
-    //extract_smallMap(MapLarge); /
-    //mapRead_to_file(inputFileName, MapSmall, MapSmallName);
-
-    //printMap(MapLarge);
-    //printMap(MapSmall);
     return 0;
 }
